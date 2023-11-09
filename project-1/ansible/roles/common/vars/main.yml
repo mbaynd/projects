@@ -1,0 +1,15 @@
+default_packages: [
+  "vim",
+  "tmux",
+  "acl",
+  "jq",
+  "curl",
+  "zsh",
+  "figlet",
+  "net-tools",
+  "unzip",
+  "acl",
+  "git",
+  "tmux",
+  "python3-pip"
+]

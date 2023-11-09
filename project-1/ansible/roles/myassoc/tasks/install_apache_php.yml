@@ -1,0 +1,65 @@
+---
+# tasks file for myassoc
+- name: Add Ondrej PPA Repository
+  ansible.builtin.apt_repository:
+    validate_certs: false
+    repo: ppa:ondrej/php
+    state: present
+
+- name: Install Apache2 - lib Apache - Install PHP and PHP Modules
+  ansible.builtin.package:  
+    state: latest 
+    name: "{{ php_modules }}"
+    update_cache: yes
+
+
+- name: Install PythonMySQL and wkhtmltopdf
+  ansible.builtin.apt:  
+    state: present
+    name: 
+      - python3-mysqldb
+      - wkhtmltopdf  
+  register: packages
+  notify: restart_apache2
+  ignore_errors: true
+  when: ansible_distribution in ["Debian", "Ubuntu"] 
+
+
+- name: Install PythonMySQL Client
+  ansible.builtin.yum:  
+    state: latest 
+    name: 
+      - python3-mysqlclient
+  ignore_errors: true
+  when: ansible_distribution in ["Centos", "Redhat","Rocky"]
+
+
+- name: Display Installed packages
+  debug:
+    var: packages.stdout_lines
+      
+- name: Disable the Apache2 modules for running PHP-FPM
+  community.general.apache2_module:
+    state: absent
+    name: "{{ item }}"
+  with_items:
+    - php7.4
+    - mpm_prefork 
+  ignore_errors: true
+  notify: restart_apache2
+
+- name: Enable the Apache2 modules for running PHP-FPM
+  community.general.apache2_module:
+    state: present
+    name: "{{ item }}"
+    ignore_configcheck: true
+  with_items:
+    - headers
+    - ssl
+    - mpm_event
+    - rewrite
+    - proxy
+    - proxy_fcgi
+    - setenvif
+  ignore_errors: yes
+  notify: restart_apache2

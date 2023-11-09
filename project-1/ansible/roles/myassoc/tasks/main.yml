@@ -1,0 +1,17 @@
+---
+- name: Install Apache and PHP tasks
+  include_tasks: 
+    file: install_apache_php.yml
+
+- name: Myassoc User creation 
+  include_tasks: 
+    file: create_myassoc_user.yml
+
+- name: MyAssoc Install Mariadb Server 
+  include_tasks: 
+    file: install_mariadb.yml
+
+- name: MyAssoc deployment process
+  include_tasks: 
+    file: deploy_myassoc.yml
+...

@@ -1,0 +1,19 @@
+  - name: Show my IP
+    command: "ifconfig en0"
+    register: output
+
+  - name: Show en0 IP Address
+    debug:
+      var: output
+
+  - name: Install HTOP on mac OSX
+    shell:
+      cmd: brew install {{ item }}
+    with_items:
+      - htop
+      - mc
+      - maccy 
+      - ngrok
+      - rectangle
+      - powershell
+      - aptakube

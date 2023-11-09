@@ -1,0 +1,29 @@
+---
+- name: Create User for myassoc {{ myassoc_user }}
+  tags: always
+  user:
+   comment: "MyAssoc Applicartion User"
+   create_home: yes
+   shell: /bin/bash
+   groups: "www-data"
+   home: "/home/{{ myassoc_user }}"
+   name: "{{ myassoc_user }}"
+   force: yes
+
+- name: ensure custom .ssh directory exists
+  file:
+    path: /home/{{ myassoc_user }}/.ssh
+    recurse: true
+    state: directory
+  
+
+- name: Copy git ssh key to remote server {{ ansible_hostname }}
+  tags: always
+  copy:
+    src: "{{ myassoc_github_key_file }}"
+    dest: "/home/{{ myassoc_user }}/.ssh/id_rsa"
+    owner: "{{ myassoc_user }}"
+    group: "{{ myassoc_user }}"
+    mode: "0600"
+    remote_src: no
+...

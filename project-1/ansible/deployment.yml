@@ -1,0 +1,62 @@
+---
+- name: Playbook to install Apache Web Server on Terraform Infra
+  hosts: all
+  become: true
+
+  vars:
+    initialize: false
+
+  vars_prompt:
+    - name: myassoc_mariadb_appuser_username
+      prompt: "Please Enter MyAssoc User to create on Database ? "
+      private: false
+    - name: myassoc_mariadb_appuser_password
+      prompt: "Please Enter MyAssoc User Password  to create on Database ? "
+
+  pre_tasks:
+    - name: Run the Common Installed packages
+      tags: always
+      ansible.builtin.include_role:
+        name: common
+
+    - name: Install OH-MYZSH and Powerlevel10k Theme
+      tags: always
+      ansible.builtin.include_role:
+        name: ansible-role-p10k
+      vars:
+        ohmyzsh_theme: powerlevel10k/powerlevel10k
+
+  roles:
+    - myassoc
+
+  tasks:
+    - name: Install Apache2 web Server
+      ansible.builtin.package:
+        name: apache2
+        state: present
+      notify: Restart_apache2
+
+    - name: Remove the original "/var/www/html/index.html"
+      ansible.builtin.file:
+        path: "/var/www/html/index.html"
+        state: absent
+
+    - name: Create default Index file
+      ansible.builtin.lineinfile:
+        path: "/var/www/html/index.html"
+        owner: www-data
+        group: www-data
+        mode: "0755"
+        line: "Welcome to our web app server  {{ ansible_hostname }}: {{ inventory_hostname }}"
+        create: true
+      notify: Restart_apache2
+
+
+  handlers:
+    - name: Restart_apache2
+      ansible.builtin.service:
+        name: apache2
+        state: restarted
+
+
+...

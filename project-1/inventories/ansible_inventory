@@ -1,0 +1,9 @@
+# Ansible Inventory
+[all]
+
+52.25.42.252 
+
+
+[all:vars]
+ansible_ssh_user= ubuntu
+

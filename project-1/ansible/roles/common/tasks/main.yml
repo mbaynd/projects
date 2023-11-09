@@ -1,0 +1,64 @@
+- name: Update the system Ubuntu - {{ ansible_hostname }}
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+
+- name: Update the system Centos - {{ ansible_hostname }}
+  ansible.builtin.yum:
+    name: "*"
+    state: present
+    update_cache: true
+  when: ansible_distribution in ["Redhat", "Centos", "Fedora", "Rocky"]
+
+- name: Install Epel Release the system Centos | Redhat | Rocky -  {{ ansible_hostname }}
+  ansible.builtin.yum:
+    name: "epel-release"
+    state: present
+  when: ansible_distribution in ["Redhat", "Centos", "Fedora", "Rocky"]
+
+
+- name: Install ZSH Shell and default tools
+  tags: tools
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ default_packages }}"
+
+
+- name: Download figlet fonts
+  tags: tools
+  ansible.builtin.git:
+    repo: https://github.com/xero/figlet-fonts.git
+    dest: /tmp/figlet-fonts
+    force: true
+
+- name: Move fonts to figlet directory  /usr/share/figlet/
+  tags: tools
+  ansible.builtin.copy:
+    src: /tmp/figlet-fonts/
+    dest: /usr/share/figlet/
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add a line in .zshrc for figlet
+  tags: tools
+  ansible.builtin.lineinfile:
+    path: /home/vagrant/.zshrc
+    line: 'clear &&  figlet -f smblock  "Hi $USER" | /usr/games/lolcat'
+    state: present
+    create: true
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Add a line in .zshrc for figlet
+  tags: tools
+  ansible.builtin.lineinfile:
+    path: /home/vagrant/.zshrc
+    line: 'clear &&  figlet -f smblock  "Hi $USER"'
+    state: present
+    mode: "0644"
+    create: true
+  when: ansible_distribution in ["Redhat", "Centos", "Fedora", "Rocky"]

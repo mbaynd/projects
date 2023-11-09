@@ -1,0 +1,135 @@
+---
+
+- name: Copy Apache configuration for {{ myassoc_app_name }}
+  tags: always
+  template:
+    src: "templates/myassoc_conf.j2"
+    dest: "/etc/apache2/sites-enabled/{{ myassoc_domain_name }}.conf"
+    mode: "0644"
+    owner: "root"
+    group: "root"
+  notify: restart_apache2
+
+
+- name: Copy TLS certificates - {{ myassoc_domain_name }}
+  tags: always
+  ansible.builtin.copy: 
+    src: files/certificates/
+    dest: "{{ myassoc_ssl_certs_dir }}"
+    directory_mode: true
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  notify: restart_apache2
+
+- name: Sets default ACL for www-data on "{{ myassoc_app_dir }}"
+  tags: always
+  ansible.posix.acl:
+    path: "/home/web"
+    entity: vagrant
+    etype: user
+    permissions: rwx
+    default: true
+    state: present
+
+
+- name: Add github.com to known_hosts 
+  shell: ssh-keyscan -t rsa github.com > /home/{{ myassoc_user }}/.ssh//known_hosts
+
+
+
+
+- name: Clone MyAssoc Repository
+  tags: always
+  become_user: "{{ myassoc_user }}"
+  git:
+    dest: "{{ myassoc_app_dir }}"
+    force: yes
+    key_file: "/home/{{ myassoc_user }}/.ssh/id_rsa"
+    repo: "{{ myassoc_repo }}"
+  environment:
+    - GIT_SSL_NO_VERIFY: "true"
+  register: git_clone_myassoc
+  notify: restart_apache2
+
+
+
+- name: Copy app.php file to {{ myassoc_app_dir }}/conf/app.php
+  copy:
+   src: files/myassoc_conf/myassoc_conf_app.php
+   dest: "{{ myassoc_app_dir }}/config/app.php"
+
+- name: Copy Myassoc DB Password configuration du /etc
+  template:
+   src: templates/myassoc_password_etc.j2
+   dest: "/etc/myassoc-password.php"
+   mode: "0755"
+
+
+
+- name: Copy composer.phar as binary in /usr/local/bin
+  copy:
+    src: "{{ myassoc_app_dir }}/composer.phar"
+    dest: /usr/local/bin/composer
+    mode: 0755
+    remote_src: yes
+
+
+
+- name: Download and installs all libs and dependencies outlined in the {{ myassoc_app_dir }}
+  become_user: web
+  community.general.composer:
+    command: install
+    working_dir: "{{ myassoc_app_dir }}"
+    prefer_dist: true
+
+
+- name: Get login.less CSS file from 
+  become_user: web 
+  get_url:
+    mode: "0644"
+    owner: "web"
+    url: "https://lions-sav.myassoc.org/css/login.less"
+    
+    dest: "{{ myassoc_app_dir }}/webroot/css/login.less"
+
+
+- name: "Output the cloning result for Repository {{ myassoc_repo }}"
+  tags: always
+  debug:
+    var: git_clone_myassoc
+
+
+- name: Output the last git log after PULLING
+  tags: always 
+  become_user: "{{ myassoc_user }}"
+  shell: 
+    cmd: git log -1 
+    chdir: "{{ myassoc_app_dir }}"
+  register: gitlog_before
+
+- name: Output git logs -- AFTER
+  tags: always
+  debug:
+    var: gitlog_before.stdout_lines
+
+
+- name: Change ownership of {{ myassoc_app_dir }}
+  become_user: "{{ myassoc_user }}"
+  shell:
+    chdir: "{{ myassoc_app_dir }}"
+    cmd: |
+      /usr/local/bin/composer install --prefer-source --quiet
+
+- name: Change ownership to apache2
+  command: "chown -R www-data:www-data /home/web"
+  notify: restart_apache2
+   
+
+- name: Name for cron module
+  cron:
+    job: "{{ myassoc_app_dir }}/bin/cake queue runworker -q"
+    minute: "*/30"
+    name: "RUNWORKER"
+    user: "{{ apache_user }}"
+...

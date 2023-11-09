@@ -1,0 +1,42 @@
+---
+# vars file for myassoc
+
+apache_version: apache2
+php_version: 7.4
+phpfpm_version: 7.4
+libapache_version: libapache2-mod-php{{ phpfpm_version }}
+php_modules:
+  - php{{ phpfpm_version }}-bcmath
+  - php{{ phpfpm_version }}-cli
+  - php{{ phpfpm_version }}-common
+  - php{{ phpfpm_version }}-curl
+  - php{{ phpfpm_version }}-fpm
+  - php{{ phpfpm_version }}-gd
+  - php{{ phpfpm_version }}-intl
+  - php{{ phpfpm_version }}-json
+  - php{{ phpfpm_version }}-mbstring
+  - php{{ phpfpm_version }}-mysql
+  - php{{ phpfpm_version }}-opcache
+  - php{{ phpfpm_version }}-readline
+  - php{{ phpfpm_version }}-xml
+  - php{{ phpfpm_version }}-zip  
+
+
+myassoc_user: web 
+myassoc_repo: git@github.com:Africa4Data/myassoc_prod.git
+myassoc_app_name: myassoc
+myassoc_app_dir: "/home/{{ myassoc_user }}/myassoc"
+myassoc_github_key_file: files/keys/myassoc_git_ssh_key.id_rsa
+myassoc_ssl_certs_dir: /etc/apache2/sites-enabled/certs 
+myassoc_domain_name: myassoc.org
+myassoc_webroot: "{{ myassoc_app_dir }}/webroot"
+
+myassoc_access_log: myassoc_domain_name
+myassoc_mariadb_server_version: 10.6
+myassoc_mariadb_appuser_host: localhost 
+myassoc_mariadb_appuser_username: ToBeSetWithPrompt
+myassoc_mariadb_appuser_password: ToBeSetWithPrompt
+myassoc_mariadb_db_host: localhost
+myassoc_mariadb_dbname: lionsmerge
+myassoc_db_backup_url: http://monit.myassoc.org:8001/lionsmerge_05_10_2023.zip
+myassoc_restore_db_file: /tmp/lionsmerge_05_10_2023.sql

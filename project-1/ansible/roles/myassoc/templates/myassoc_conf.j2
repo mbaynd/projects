@@ -1,0 +1,73 @@
+<VirtualHost *:80>
+    ServerName {{ myassoc_domain_name }}
+    ServerAlias {{ myassoc_domain_name }}
+    ServerAlias *.{{ myassoc_domain_name }}
+
+
+    # Par défaut, Debian n'autorise Apache à servir que /var/www et /usr/share
+    <Directory {{ myassoc_webroot }}>
+        # Autorise la consultation depuis tous les clients
+        Require all granted
+        # Autorise .htaccess à modifier la config
+        AllowOverride All
+    </Directory>
+
+        # Configuration pour utiliser PHP-FPM
+    <FilesMatch \.php$>
+        # 2.4.10+ can proxy to unix socket
+        SetHandler "proxy:unix:/run/php/php-fpm.sock|fcgi://localhost"
+    </FilesMatch>
+
+    DocumentRoot {{ myassoc_webroot }}
+
+    # Variables d'environnement propres à myassoc
+    # Cf. /etc/apache2/conf-enabled/custom-env.conf d'autres variables, communes à tous les virtualhosts
+    SetEnv APP_URL https://{{ myassoc_domain_name }}
+    SetEnv URL_DOMAINE_MODULES https://modules.{{ myassoc_domain_name }}
+
+    CustomLog ${APACHE_LOG_DIR}/{{ myassoc_app_name }}_access.log vhost_combined_custom
+    ErrorLog ${APACHE_LOG_DIR}/{{ myassoc_app_name }}_error.log
+    LogLevel notice
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName {{ myassoc_domain_name }}
+    ServerAlias {{ myassoc_domain_name }}
+    ServerAlias *.{{ myassoc_domain_name }}
+
+    # Par défaut, Debian n'autorise Apache à servir que /var/www et /usr/share
+    <Directory {{ myassoc_webroot }}>
+        # Autorise la consultation depuis tous les clients
+        Require all granted
+        # Autorise .htaccess à modifier la config
+        AllowOverride All
+    </Directory>
+
+    <FilesMatch \.php$>
+        # 2.4.10+ can proxy to unix socket
+        SetHandler "proxy:unix:/run/php/php-fpm.sock|fcgi://localhost"
+    </FilesMatch>
+
+    DocumentRoot  {{ myassoc_webroot }}
+
+    # Variables d'environnement propres à myassoc
+    # Cf. /etc/apache2/conf-enabled/custom-env.conf d'autres variables, communes à tous les virtualhosts
+    SetEnv APP_URL https://{{ myassoc_domain_name }}
+    SetEnv URL_DOMAINE_MODULES https://modules.{{ myassoc_domain_name }}
+
+
+    CustomLog ${APACHE_LOG_DIR}/{{ myassoc_app_name }}_access.log vhost_combined_custom
+    ErrorLog ${APACHE_LOG_DIR}/{{ myassoc_app_name }}_error.log
+    LogLevel notice
+
+    SSLEngine on
+    SSLCertificateFile {{ myassoc_ssl_certs_dir }}/{{ myassoc_domain_name }}.pem
+    SSLCertificateKeyFile  {{ myassoc_ssl_certs_dir }}/{{ myassoc_domain_name }}.priv
+
+
+    SSLProtocol all -SSLv2 -SSLv3
+    SSLHonorCipherOrder on
+    SSLCipherSuite "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS"
+
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+</VirtualHost>

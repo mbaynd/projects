@@ -1,0 +1,69 @@
+---
+- name: Install Mariadb Server
+  apt: 
+    name: mariadb-server-{{ myassoc_mariadb_server_version }}
+    state: present
+
+- name: secure mariadb
+  become: yes
+  expect:
+    command: mysql_secure_installation
+    responses:
+      'Enter current password for root': ''
+      'Set root password': 'n'
+      'Remove anonymous users': 'y'
+      'Disallow root login remotely': 'y'
+      'Remove test database': 'y'
+      'Reload privilege tables now': 'y'
+    timeout: 1
+  register: secure_mariadb
+  failed_when: "'... Failed!' in secure_mariadb.stdout_lines"
+
+- name: Name for debug module.
+  debug:
+   var: secure_mariadb.stdout
+   verbosity: "3"
+
+- name: Install PyMySQL
+  package:
+    name: 
+      - python3-pip
+      - python3-mysqldb
+    state: present
+
+
+- name: Create {{ myassoc_mariadb_dbname }} database for {{ myassoc_app_name }}
+  community.mysql.mysql_db:
+    name: "{{ myassoc_mariadb_dbname }}"
+    state: present
+  tags:
+    - community
+    - mysql
+    - mysql_db
+
+
+- name: Adds a user from a Mariadb database
+  community.mysql.mysql_user:
+    name: "{{ myassoc_mariadb_appuser_username }}"
+    password: "{{ myassoc_mariadb_appuser_password }}"
+    host: "{{ myassoc_mariadb_appuser_host }}"
+    priv: "{{myassoc_mariadb_dbname}}.*:ALL"
+  tags:
+    - deploy
+    - always
+    - community
+    - mysql
+    - mysql_user
+
+
+- name: Download Backup of {{ myassoc_app_name }} database
+  unarchive:
+   src: "{{ myassoc_db_backup_url }}"
+   dest: "/tmp"
+   remote_src: True
+
+
+- name: Restore Myassoc data into mariadb
+  shell: | 
+    mysql --binary-mode=1 -u {{ myassoc_mariadb_appuser_username }} -p{{ myassoc_mariadb_appuser_password }} {{ myassoc_mariadb_dbname }} < {{ myassoc_restore_db_file }}
+...
